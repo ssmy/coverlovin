@@ -13,6 +13,7 @@ import simplejson
 from LoadFile import LoadFile
 import logging
 from optparse import OptionParser
+from PIL import Image
 
 # logging
 log = logging.getLogger('coverlovin')
@@ -50,10 +51,7 @@ def dl_cover(urlList, directory, fileName, overWrite=False):
     '''download cover image from url in list to given directory/fileName'''
 
     coverImg = os.path.join(directory, fileName)
-    # move existing file if overWrite enabled
-    if os.path.isfile(coverImg) and overWrite:
-        log.info("%s exists and overwrite enabled - moving to %s.bak" % (coverImg, coverImg))
-        os.rename(coverImg, (coverImg + '.bak'))
+
     # download cover image from urls in list
     for url in urlList:
         log.debug('opening url: ' + url)
@@ -67,10 +65,33 @@ def dl_cover(urlList, directory, fileName, overWrite=False):
         # download file
         if urlOk:
             log.info('downloading cover image\n from: %s\n to: %s' % (url, coverImg))
-            coverImgLocal = open(os.path.join(directory, fileName), 'w')
+            coverImgLocal = open(os.path.join(directory, (fileName + '.new')), 'w')
             coverImgLocal.write(coverImgWeb.read())
             coverImgWeb.close()
             coverImgLocal.close()
+
+            # check for overwrite
+            if os.path.isfile(coverImg) and overWrite:
+                if larger:
+                    localSize = Image.open(coverImg).size
+                    newSize = Image.open(coverImg + '.new').size
+
+                    if newSize > localSize:
+                        log.info("overwriting smaller image %s - moving to %s.bak" % (coverImg, coverImg))
+                        os.rename(coverImg, (coverImg + '.bak'))
+                        os.rename((coverImg + '.new'), coverImg)
+                    else:
+                        # new image is smaller
+                        os.remove(coverImg + '.new')
+                else:
+                    # regular overwrite
+                    log.info("%s exists and overwrite enabled - moving to %s.bak" % (coverImg, coverImg))
+                    os.rename(coverImg, (coverImg + '.bak'))
+                    os.rename((coverImg + '.new'), coverImg)
+            else:
+                # no previous image
+                os.rename((coverImg + '.new'), coverImg)
+
             # cover successfully downloaded so return
             return True
 
@@ -190,6 +211,7 @@ def parse_args_opts():
     parser.add_option("-r", "--referer", dest="referer", action="store", default=defaultReferer, help="referer url (default: %s)" % defaultReferer)
     parser.add_option("-c", "--count", dest="count", action="store", default="8", type="int", help="image lookup count (default: 8))")
     parser.add_option("-o", "--overwrite", dest="overwrite", action="store_true", default=False, help="overwrite (default False)")
+    parser.add_option("-l", "--larger", dest="larger", action="store_true", default=False, help="overwrite smaller only (requires overwrite)")
     parser.add_option("-d", "--debug", dest="debug", action="store_true", default=False, help="show debug (default False)")
     parser.set_usage("Usage: coverlovin.py <music_dir> [options]")
     (options, args) = parser.parse_args()
@@ -225,6 +247,7 @@ def parse_args_opts():
     parameters['referer'] = options.referer
     parameters['resultCount'] = int(options.count)
     parameters['overWrite'] = options.overwrite
+    parameters['larger'] = options.larger
     parameters['debug'] = options.debug
 
     return parameters
@@ -264,7 +287,7 @@ def main():
                 for url in urls:
                     log.debug(' %s' % url)
                 # download cover image
-                dl_cover(urls, directory, fileName, overWrite=overWrite)
+                dl_cover(urls, directory, fileName, overWrite=overWrite, larger=larger)
             else:
                 log.info('no urls found for %s/%s' % (artist, album))
         except:
