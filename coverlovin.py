@@ -28,6 +28,27 @@ log.addHandler(handler)
 defaultReferer = "https://launchpad.net/coverlovin"
 googleImagesUrl = "https://ajax.googleapis.com/ajax/services/search/images"
 
+# stats setup
+class Stats:
+    def __init__(self):
+        self.totalAlbums = 0
+        self.totalRequests = 0
+        self.totalCovers = 0
+
+    def addAlbum(self):
+        self.totalAlbums += 1
+
+    def addRequest(self):
+        self.totalRequests += 1
+
+    def addCover(self):
+        self.totalCovers += 1
+
+    def print_summary(self):
+        print "Total albums: %d" % self.totalAlbums
+        print "Total network requests: %d" % self.totalRequests
+        print "Total covers added: %d" % self.totalCovers
+
 def sanitise_for_url(inputString):
     '''sanitise a string such that it can be used in a url'''
 
@@ -56,6 +77,7 @@ def dl_cover(urlList, directory, fileName, overWrite=False, larger=False):
     # download cover image from urls in list
     for url in urlList:
         log.debug('opening url: ' + url)
+        stats.addRequest()
         urlOk = True
         # open connection
         try:
@@ -81,6 +103,7 @@ def dl_cover(urlList, directory, fileName, overWrite=False, larger=False):
                         log.info("overwriting smaller image %s - moving to %s.bak" % (coverImg, coverImg))
                         os.rename(coverImg, (coverImg + '.bak'))
                         os.rename((coverImg + '.new'), coverImg)
+                        stats.addCover()
                     else:
                         # new image is smaller
                         os.remove(coverImg + '.new')
@@ -89,9 +112,11 @@ def dl_cover(urlList, directory, fileName, overWrite=False, larger=False):
                     log.info("%s exists and overwrite enabled - moving to %s.bak" % (coverImg, coverImg))
                     os.rename(coverImg, (coverImg + '.bak'))
                     os.rename((coverImg + '.new'), coverImg)
+                    stats.addCover()
             else:
                 # no previous image
                 os.rename((coverImg + '.new'), coverImg)
+                stats.addCover()
 
             # cover successfully downloaded so return
             return True
@@ -194,6 +219,7 @@ def process_dir(thisDir, results=[], coverFiles=[]):
         if artist or album:
             log.info("album details found: %s/%s in %s" % (artist, album, file))
             results.append((thisDir, artist, album))
+            stats.addAlbum()
             return results
     # no artist or album info found, return results unchanged
     return results
@@ -267,6 +293,10 @@ def main():
     # record start time
     start_time = time()
 
+    # initialize stats
+    global stats
+    stats = Stats()
+
     parameters = parse_args_opts()
 
     # allocate args/opts to vars, converting to utf-8
@@ -304,6 +334,9 @@ def main():
                 log.info('no urls found for %s/%s' % (artist, album))
         except Exception, err:
             print "An error occured during fetching the image urls: %s" % err
+
+    # print stats
+    stats.print_summary()
 
     # record end time
     end_time = time()
