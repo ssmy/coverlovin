@@ -47,7 +47,7 @@ def sanitise_for_url(inputString):
 
     return outputString
 
-def dl_cover(urlList, directory, fileName, overWrite=False):
+def dl_cover(urlList, directory, fileName, overWrite=False, larger=False):
     '''download cover image from url in list to given directory/fileName'''
 
     coverImg = os.path.join(directory, fileName)
@@ -266,6 +266,7 @@ def main():
     referer = unicode(parameters['referer'], 'utf-8')
     resultCount = parameters['resultCount']
     overWrite = parameters['overWrite']
+    larger = parameters['larger']
     debug = parameters['debug']
     # set loglevel to debug
     if debug:
@@ -290,8 +291,8 @@ def main():
                 dl_cover(urls, directory, fileName, overWrite=overWrite, larger=larger)
             else:
                 log.info('no urls found for %s/%s' % (artist, album))
-        except:
-            print "An error occured during fatching the image urls"
+        except Exception, err:
+            print "An error occured during fetching the image urls: %s" % err
 
     return 0
 
