@@ -14,6 +14,7 @@ from LoadFile import LoadFile
 import logging
 from optparse import OptionParser
 from PIL import Image
+from time import time
 
 # logging
 log = logging.getLogger('coverlovin')
@@ -252,9 +253,19 @@ def parse_args_opts():
 
     return parameters
 
+# utility function to format time
+def hms_time(sec_elapsed):
+    h = int(sec_elapsed / (60 * 60))
+    m = int((sec_elapsed % (60 * 60)) / 60)
+    s = sec_elapsed % 60.
+    return "{}:{:>02}:{:>05.2f}".format(h, m, s)
+
 def main():
     '''recursively download cover images for music files in a
     given directory and its sub-directories'''
+
+    # record start time
+    start_time = time()
 
     parameters = parse_args_opts()
 
@@ -293,6 +304,10 @@ def main():
                 log.info('no urls found for %s/%s' % (artist, album))
         except Exception, err:
             print "An error occured during fetching the image urls: %s" % err
+
+    # record end time
+    end_time = time()
+    print "Total time elapsed: %s" % hms_time(end_time-start_time)
 
     return 0
 
